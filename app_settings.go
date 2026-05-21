@@ -8,7 +8,7 @@ import (
 )
 
 const (
-	defaultPetCount = 2
+	defaultPetCount = 1
 	maxPetCount     = 6
 )
 

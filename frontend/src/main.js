@@ -171,7 +171,7 @@ function callService(method, ...args) {
 }
 
 function normalizeSettings(rawSettings) {
-    const petCount = Number(rawSettings?.petCount ?? rawSettings?.PetCount ?? 2);
+    const petCount = Number(rawSettings?.petCount ?? rawSettings?.PetCount ?? 1);
     const maxPets = Number(rawSettings?.maxPets ?? rawSettings?.MaxPets ?? 6);
     return {
         petCount: clampNumber(petCount, 1, maxPets || 6),
@@ -495,7 +495,7 @@ async function initSettingsWindow() {
         } catch (error) {
             showStatus("设置服务暂时不可用", true);
             console.error(error);
-            return { petCount: 2, maxPets: 6 };
+            return { petCount: 1, maxPets: 6 };
         }
     }
 
