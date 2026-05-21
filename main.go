@@ -51,6 +51,7 @@ func main() {
 
 	manager := newPetManager(app, settings, settingsPath)
 	petService.manager = manager
+	manager.applyShortcuts(manager.Settings().Shortcuts)
 	manager.applyInitialPetCount()
 
 	if err := app.Run(); err != nil {

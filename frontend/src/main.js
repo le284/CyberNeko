@@ -4,6 +4,21 @@ const SERVICE_PREFIX = "main.PetService.";
 const PET_IMAGES_STORAGE_KEY = "cyberneko.petImages.v1";
 const CUSTOM_IMAGE_MAX_SIDE = 360;
 const CUSTOM_GIF_MAX_BYTES = 4 * 1024 * 1024;
+const IS_MAC_PLATFORM = /mac|iphone|ipad|ipod/i.test(navigator.userAgentData?.platform || navigator.platform || "");
+
+const DEFAULT_SHORTCUTS = Object.freeze({
+    idle: "Ctrl+Alt+1",
+    edgeWander: "Ctrl+Alt+2",
+    followMouse: "Ctrl+Alt+3",
+    cycle: "Ctrl+Alt+Space",
+});
+
+const SHORTCUT_ACTIONS = Object.freeze([
+    Object.freeze({ id: "idle", label: "原地待机" }),
+    Object.freeze({ id: "edgeWander", label: "沿边缘巡游" }),
+    Object.freeze({ id: "followMouse", label: "跟随鼠标" }),
+    Object.freeze({ id: "cycle", label: "循环切换" }),
+]);
 
 const PET_PROFILES = Object.freeze({
     neko: Object.freeze({
@@ -176,7 +191,23 @@ function normalizeSettings(rawSettings) {
     return {
         petCount: clampNumber(petCount, 1, maxPets || 6),
         maxPets: clampNumber(maxPets || 6, 1, 12),
+        shortcuts: normalizeShortcutSettings(rawSettings?.shortcuts ?? rawSettings?.Shortcuts),
     };
+}
+
+function normalizeShortcutSettings(rawShortcuts) {
+    const source = rawShortcuts && typeof rawShortcuts === "object" ? rawShortcuts : {};
+    return {
+        idle: normalizeShortcutText(source.idle ?? source.Idle, DEFAULT_SHORTCUTS.idle),
+        edgeWander: normalizeShortcutText(source.edgeWander ?? source.EdgeWander, DEFAULT_SHORTCUTS.edgeWander),
+        followMouse: normalizeShortcutText(source.followMouse ?? source.FollowMouse, DEFAULT_SHORTCUTS.followMouse),
+        cycle: normalizeShortcutText(source.cycle ?? source.Cycle, DEFAULT_SHORTCUTS.cycle),
+    };
+}
+
+function normalizeShortcutText(value, fallback) {
+    const text = String(value || "").trim();
+    return text || fallback;
 }
 
 function clampNumber(value, min, max) {
@@ -472,20 +503,29 @@ async function initSettingsWindow() {
     const saveButton = document.getElementById("pet-count-save");
     const closeButton = document.getElementById("settings-close");
     const imageList = document.getElementById("pet-image-list");
+    const shortcutList = document.getElementById("shortcut-list");
+    const shortcutSaveButton = document.getElementById("shortcut-save");
     const status = document.getElementById("settings-status");
 
     let settings = normalizeSettings(await safeGetSettings());
+    let shortcutDraft = { ...settings.shortcuts };
+    let capturingShortcutAction = "";
     applySettingsToControls(settings);
+    renderShortcutRows();
     renderPetImageSlots(settings);
 
     closeButton.addEventListener("click", () => Window.Hide());
     saveButton.addEventListener("click", savePetCount);
+    shortcutSaveButton.addEventListener("click", saveShortcuts);
+    document.addEventListener("keydown", captureShortcutFromKeyboard, true);
     rangeInput.addEventListener("input", () => syncCountInputs(rangeInput.value));
     numberInput.addEventListener("input", () => syncCountInputs(numberInput.value));
 
     Events.On("pet:settings", (event) => {
         settings = normalizeSettings(event.data);
+        shortcutDraft = { ...settings.shortcuts };
         applySettingsToControls(settings);
+        renderShortcutRows();
         renderPetImageSlots(settings);
     });
 
@@ -495,7 +535,7 @@ async function initSettingsWindow() {
         } catch (error) {
             showStatus("设置服务暂时不可用", true);
             console.error(error);
-            return { petCount: 1, maxPets: 6 };
+            return { petCount: 1, maxPets: 6, shortcuts: DEFAULT_SHORTCUTS };
         }
     }
 
@@ -511,6 +551,150 @@ async function initSettingsWindow() {
         numberInput.value = String(count);
         output.value = String(count);
         output.textContent = String(count);
+    }
+
+    function renderShortcutRows() {
+        shortcutList.replaceChildren();
+        for (const action of SHORTCUT_ACTIONS) {
+            const row = document.createElement("article");
+            row.className = "shortcut-row";
+            row.dataset.capturing = String(capturingShortcutAction === action.id);
+
+            const title = document.createElement("span");
+            title.className = "shortcut-title";
+            title.textContent = action.label;
+
+            const input = document.createElement("input");
+            input.className = "shortcut-input";
+            input.readOnly = true;
+            input.value = capturingShortcutAction === action.id ? "按下组合键" : shortcutDraft[action.id];
+            input.setAttribute("aria-label", action.label + "快捷键");
+            input.addEventListener("focus", () => startShortcutCapture(action.id));
+            input.addEventListener("click", () => startShortcutCapture(action.id));
+
+            const recordButton = document.createElement("button");
+            recordButton.className = "secondary-button shortcut-button";
+            recordButton.type = "button";
+            recordButton.textContent = capturingShortcutAction === action.id ? "录制中" : "录制";
+            recordButton.addEventListener("click", () => startShortcutCapture(action.id));
+
+            const resetButton = document.createElement("button");
+            resetButton.className = "ghost-button shortcut-button";
+            resetButton.type = "button";
+            resetButton.textContent = "重置";
+            resetButton.addEventListener("click", () => {
+                shortcutDraft[action.id] = DEFAULT_SHORTCUTS[action.id];
+                capturingShortcutAction = "";
+                renderShortcutRows();
+            });
+
+            row.append(title, input, recordButton, resetButton);
+            shortcutList.append(row);
+        }
+    }
+
+    function startShortcutCapture(actionId) {
+        capturingShortcutAction = actionId;
+        renderShortcutRows();
+        showStatus("按下快捷键");
+    }
+
+    function captureShortcutFromKeyboard(event) {
+        if (!capturingShortcutAction) {
+            return;
+        }
+
+        event.preventDefault();
+        event.stopPropagation();
+        const shortcut = shortcutFromKeyboardEvent(event);
+        if (!shortcut) {
+            showStatus("请包含修饰键", true);
+            return;
+        }
+
+        shortcutDraft[capturingShortcutAction] = shortcut;
+        capturingShortcutAction = "";
+        renderShortcutRows();
+        showStatus("已录制");
+    }
+
+    function shortcutFromKeyboardEvent(event) {
+        const key = normalizeKeyboardShortcutKey(event.key);
+        if (!key) {
+            return "";
+        }
+
+        const modifiers = [];
+        if (event.metaKey) {
+            modifiers.push(IS_MAC_PLATFORM ? "CmdOrCtrl" : "Super");
+        }
+        if (event.ctrlKey) {
+            modifiers.push("Ctrl");
+        }
+        if (event.altKey) {
+            modifiers.push("Alt");
+        }
+        if (event.shiftKey) {
+            modifiers.push("Shift");
+        }
+
+        const isFunctionKey = /^F\d{1,2}$/.test(key);
+        if (modifiers.length === 0 && !isFunctionKey) {
+            return "";
+        }
+        return [...modifiers, key].join("+");
+    }
+
+    function normalizeKeyboardShortcutKey(key) {
+        const aliases = {
+            " ": "Space",
+            Spacebar: "Space",
+            Escape: "Escape",
+            Esc: "Escape",
+            ArrowLeft: "Left",
+            ArrowRight: "Right",
+            ArrowUp: "Up",
+            ArrowDown: "Down",
+            PageUp: "Page Up",
+            PageDown: "Page Down",
+            Delete: "Delete",
+            Backspace: "Backspace",
+            Enter: "Enter",
+            Return: "Return",
+            Tab: "Tab",
+            Home: "Home",
+            End: "End",
+        };
+        if (["Control", "Shift", "Alt", "Meta"].includes(key)) {
+            return "";
+        }
+        if (aliases[key]) {
+            return aliases[key];
+        }
+        const functionKeyMatch = /^F(\d{1,2})$/i.exec(key);
+        if (functionKeyMatch) {
+            const functionKeyNumber = Number(functionKeyMatch[1]);
+            return functionKeyNumber >= 1 && functionKeyNumber <= 35 ? key.toUpperCase() : "";
+        }
+        if (key.length === 1) {
+            return key.toUpperCase();
+        }
+        return "";
+    }
+
+    async function saveShortcuts() {
+        shortcutSaveButton.disabled = true;
+        try {
+            settings = normalizeSettings(await callService("SetShortcuts", shortcutDraft));
+            shortcutDraft = { ...settings.shortcuts };
+            renderShortcutRows();
+            showStatus("快捷键已应用");
+        } catch (error) {
+            showStatus("快捷键保存失败", true);
+            console.error(error);
+        } finally {
+            shortcutSaveButton.disabled = false;
+        }
     }
 
     async function savePetCount() {

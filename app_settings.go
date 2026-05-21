@@ -15,14 +15,16 @@ const (
 // AppSettings 是会落盘的应用设置。
 // 字段使用 json tag，是为了让 Wails 返回给前端时直接得到 camelCase 数据。
 type AppSettings struct {
-	PetCount int `json:"petCount"`
-	MaxPets  int `json:"maxPets"`
+	PetCount  int              `json:"petCount"`
+	MaxPets   int              `json:"maxPets"`
+	Shortcuts ShortcutSettings `json:"shortcuts"`
 }
 
 // AppSettingsChangedEvent 会广播给所有 WebView，让设置窗口和宠物窗口保持一致。
 type AppSettingsChangedEvent struct {
-	PetCount int `json:"petCount"`
-	MaxPets  int `json:"maxPets"`
+	PetCount  int              `json:"petCount"`
+	MaxPets   int              `json:"maxPets"`
+	Shortcuts ShortcutSettings `json:"shortcuts"`
 }
 
 // PetVisualsChangedEvent 用于通知所有宠物窗口重新读取本地图片缓存。
@@ -31,7 +33,11 @@ type PetVisualsChangedEvent struct {
 }
 
 func defaultAppSettingsValue() AppSettings {
-	return AppSettings{PetCount: defaultPetCount, MaxPets: maxPetCount}
+	return AppSettings{
+		PetCount:  defaultPetCount,
+		MaxPets:   maxPetCount,
+		Shortcuts: defaultShortcutSettings(),
+	}
 }
 
 func normalizeAppSettings(settings AppSettings) AppSettings {
@@ -40,6 +46,7 @@ func normalizeAppSettings(settings AppSettings) AppSettings {
 	if settings.PetCount == 0 {
 		settings.PetCount = defaultPetCount
 	}
+	settings.Shortcuts = normalizeShortcutSettings(settings.Shortcuts)
 	return settings
 }
 

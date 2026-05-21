@@ -10,5 +10,6 @@ export {
 export {
     AppSettings,
     AppSettingsChangedEvent,
-    PetVisualsChangedEvent
+    PetVisualsChangedEvent,
+    ShortcutSettings
 } from "./models.js";

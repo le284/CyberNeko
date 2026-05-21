@@ -14,8 +14,8 @@ CyberNeko/
 │   ├── public/logo.svg        # 前端 favicon 与设置页 logo
 │   ├── public/style.css       # 猫咪占位造型、设置窗口、自定义图片和拖拽命中区样式
 │   └── src/main.js            # 150ms 动画循环、宠物皮肤、设置、图片上传和气泡文案
-├── app_settings.go            # 宠物数量等设置的落盘读写
-├── pet_manager.go             # 多宠物窗口管理、设置窗口和右键菜单
+├── app_settings.go            # 宠物数量、行为快捷键等设置的落盘读写
+├── pet_manager.go             # 多宠物窗口管理、设置窗口、快捷键和右键菜单
 ├── pet_service.go             # 暴露给前端设置窗口的 Wails 服务
 └── build/                     # Wails 平台构建配置与图标资源
 ```
@@ -30,6 +30,7 @@ CyberNeko/
 - `--custom-contextmenu`: 每只宠物绑定自己的 Wails 原生菜单，可单独切换原地待机、沿窗口边缘巡游、跟随鼠标或退出。
 - `?pet=neko` / `?pet=momo`: 同一套前端资源按 URL 参数切换不同宠物皮肤、台词和菜单。
 - 右键菜单中的“设置...”会打开设置窗口，可修改启动宠物数量。当前上限为 6 只，设置会保存到系统用户配置目录。
+- 设置窗口支持录制行为快捷键：默认 `Ctrl+Alt+1` 待机、`Ctrl+Alt+2` 沿边缘巡游、`Ctrl+Alt+3` 跟随鼠标、`Ctrl+Alt+Space` 循环切换。焦点在某只宠物窗口时只切换这只，焦点在设置窗口时会切换所有已显示宠物。
 - 设置窗口支持为每个宠物槽位上传 PNG、JPG、WebP 或 GIF；非 GIF 图片会在前端压缩为 WebP 后写入本地 `localStorage`。
 
 Logo 与图标说明：`frontend/public/logo.svg` 是前端 favicon 与设置页 logo，`build/appicon.png`、`build/windows/icon.ico`、`build/darwin/icons.icns` 是 Wails 打包时使用的平台图标。

@@ -42,5 +42,15 @@ export function SetPetCount(count) {
     }));
 }
 
+/**
+ * @param {$models.ShortcutSettings} shortcuts
+ * @returns {$CancellablePromise<$models.AppSettings>}
+ */
+export function SetShortcuts(shortcuts) {
+    return $Call.ByID(3925119199, shortcuts).then(/** @type {($result: any) => any} */(($result) => {
+        return $$createType0($result);
+    }));
+}
+
 // Private type creation functions
 const $$createType0 = $models.AppSettings.createFrom;

@@ -22,6 +22,13 @@ func (s *PetService) SetPetCount(count int) (AppSettings, error) {
 	return s.manager.SetPetCount(count)
 }
 
+func (s *PetService) SetShortcuts(shortcuts ShortcutSettings) (AppSettings, error) {
+	if s.manager == nil {
+		return defaultAppSettingsValue(), nil
+	}
+	return s.manager.SetShortcuts(shortcuts)
+}
+
 func (s *PetService) NotifyVisualSettingsChanged() {
 	if s.manager == nil {
 		return

@@ -30,6 +30,13 @@ export class AppSettings {
              */
             this["maxPets"] = 0;
         }
+        if (!("shortcuts" in $$source)) {
+            /**
+             * @member
+             * @type {ShortcutSettings}
+             */
+            this["shortcuts"] = (new ShortcutSettings());
+        }
 
         Object.assign(this, $$source);
     }
@@ -40,7 +47,11 @@ export class AppSettings {
      * @returns {AppSettings}
      */
     static createFrom($$source = {}) {
+        const $$createField2_0 = $$createType0;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("shortcuts" in $$parsedSource) {
+            $$parsedSource["shortcuts"] = $$createField2_0($$parsedSource["shortcuts"]);
+        }
         return new AppSettings(/** @type {Partial<AppSettings>} */($$parsedSource));
     }
 }
@@ -68,6 +79,13 @@ export class AppSettingsChangedEvent {
              */
             this["maxPets"] = 0;
         }
+        if (!("shortcuts" in $$source)) {
+            /**
+             * @member
+             * @type {ShortcutSettings}
+             */
+            this["shortcuts"] = (new ShortcutSettings());
+        }
 
         Object.assign(this, $$source);
     }
@@ -78,7 +96,11 @@ export class AppSettingsChangedEvent {
      * @returns {AppSettingsChangedEvent}
      */
     static createFrom($$source = {}) {
+        const $$createField2_0 = $$createType0;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("shortcuts" in $$parsedSource) {
+            $$parsedSource["shortcuts"] = $$createField2_0($$parsedSource["shortcuts"]);
+        }
         return new AppSettingsChangedEvent(/** @type {Partial<AppSettingsChangedEvent>} */($$parsedSource));
     }
 }
@@ -113,3 +135,59 @@ export class PetVisualsChangedEvent {
         return new PetVisualsChangedEvent(/** @type {Partial<PetVisualsChangedEvent>} */($$parsedSource));
     }
 }
+
+/**
+ * ShortcutSettings 保存用户可配置的行为快捷键。
+ * 支持 CmdOrCtrl 作为跨平台修饰键；默认快捷键使用 Ctrl+Alt，避免和常见 Cmd 快捷键冲突。
+ */
+export class ShortcutSettings {
+    /**
+     * Creates a new ShortcutSettings instance.
+     * @param {Partial<ShortcutSettings>} [$$source = {}] - The source object to create the ShortcutSettings.
+     */
+    constructor($$source = {}) {
+        if (!("idle" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["idle"] = "";
+        }
+        if (!("edgeWander" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["edgeWander"] = "";
+        }
+        if (!("followMouse" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["followMouse"] = "";
+        }
+        if (!("cycle" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["cycle"] = "";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new ShortcutSettings instance from a string or object.
+     * @param {any} [$$source = {}]
+     * @returns {ShortcutSettings}
+     */
+    static createFrom($$source = {}) {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new ShortcutSettings(/** @type {Partial<ShortcutSettings>} */($$parsedSource));
+    }
+}
+
+// Private type creation functions
+const $$createType0 = ShortcutSettings.createFrom;

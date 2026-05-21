@@ -40,6 +40,7 @@ type PetManager struct {
 	settings       AppSettings
 	pets           map[int]*petRuntime
 	settingsWindow *application.WebviewWindow
+	shortcutKeys   map[string]string
 }
 
 var basePetProfiles = []basePetProfile{
@@ -78,6 +79,24 @@ func (m *PetManager) SetPetCount(count int) (AppSettings, error) {
 	}
 
 	m.applyPetCount(settings.PetCount)
+	m.broadcastSettings(settings)
+	return settings, nil
+}
+
+func (m *PetManager) SetShortcuts(shortcuts ShortcutSettings) (AppSettings, error) {
+	shortcuts = normalizeShortcutSettings(shortcuts)
+
+	m.mu.Lock()
+	m.settings.Shortcuts = shortcuts
+	settings := m.settings
+	settingsPath := m.settingsPath
+	m.mu.Unlock()
+
+	if err := saveAppSettings(settingsPath, settings); err != nil {
+		return settings, err
+	}
+
+	m.applyShortcuts(settings.Shortcuts)
 	m.broadcastSettings(settings)
 	return settings, nil
 }
@@ -135,6 +154,100 @@ func (m *PetManager) createPetRuntime(slot int, visible bool) *petRuntime {
 	return &petRuntime{profile: profile, window: petWindow, visible: visible}
 }
 
+func (m *PetManager) applyShortcuts(shortcuts ShortcutSettings) {
+	shortcuts = normalizeShortcutSettings(shortcuts)
+	nextKeys := make(map[string]string)
+	for action, shortcut := range shortcutActionMap(shortcuts) {
+		binding, err := shortcutBindingKey(shortcut)
+		if err == nil && binding != "" {
+			nextKeys[action] = binding
+		}
+	}
+
+	m.mu.Lock()
+	previousKeys := m.shortcutKeys
+	m.shortcutKeys = nextKeys
+	m.mu.Unlock()
+
+	for _, binding := range previousKeys {
+		m.app.KeyBinding.Remove(binding)
+	}
+
+	for action, binding := range nextKeys {
+		action := action
+		m.app.KeyBinding.Add(binding, func(window application.Window) {
+			m.applyShortcutAction(action, window.Name())
+		})
+	}
+}
+
+func (m *PetManager) applyShortcutAction(action string, sourceWindowName string) {
+	targets := m.shortcutTargets(sourceWindowName)
+	for _, target := range targets {
+		mode := movementModeForShortcutAction(action, currentMovementMode(target.profile.WindowName))
+		m.setPetRuntimeMode(target, mode)
+	}
+}
+
+func (m *PetManager) shortcutTargets(sourceWindowName string) []*petRuntime {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	if runtime := m.petRuntimeByWindowName(sourceWindowName); runtime != nil && runtime.visible {
+		return []*petRuntime{runtime}
+	}
+
+	targets := make([]*petRuntime, 0, len(m.pets))
+	for slot := 0; slot < maxPetCount; slot++ {
+		if runtime := m.pets[slot]; runtime != nil && runtime.visible {
+			targets = append(targets, runtime)
+		}
+	}
+	return targets
+}
+
+func (m *PetManager) petRuntimeByWindowName(windowName string) *petRuntime {
+	for _, runtime := range m.pets {
+		if runtime != nil && runtime.profile.WindowName == windowName {
+			return runtime
+		}
+	}
+	return nil
+}
+
+func (m *PetManager) setPetRuntimeMode(runtime *petRuntime, mode movementMode) {
+	setMovementMode(runtime.profile.WindowName, mode)
+	if mode == movementModeIdle {
+		setPetAnimationState(runtime.window, "idle")
+	}
+}
+
+func movementModeForShortcutAction(action string, currentMode movementMode) movementMode {
+	switch action {
+	case shortcutActionIdle:
+		return movementModeIdle
+	case shortcutActionEdgeWander:
+		return movementModeEdgeWander
+	case shortcutActionFollowMouse:
+		return movementModeFollowMouse
+	case shortcutActionCycle:
+		return nextMovementMode(currentMode)
+	default:
+		return currentMode
+	}
+}
+
+func nextMovementMode(currentMode movementMode) movementMode {
+	switch currentMode {
+	case movementModeIdle:
+		return movementModeEdgeWander
+	case movementModeEdgeWander:
+		return movementModeFollowMouse
+	default:
+		return movementModeIdle
+	}
+}
+
 func (m *PetManager) OpenSettingsWindow() {
 	m.mu.Lock()
 	settingsWindow := m.settingsWindow
@@ -150,9 +263,9 @@ func (m *PetManager) OpenSettingsWindow() {
 		Name:             "settings",
 		Title:            "CyberNeko 设置",
 		Width:            460,
-		Height:           610,
+		Height:           700,
 		MinWidth:         420,
-		MinHeight:        540,
+		MinHeight:        620,
 		AlwaysOnTop:      true,
 		BackgroundColour: application.NewRGB(248, 250, 252),
 		URL:              "/?view=settings",
@@ -175,8 +288,9 @@ func (m *PetManager) OpenSettingsWindow() {
 
 func (m *PetManager) broadcastSettings(settings AppSettings) {
 	m.app.Event.Emit("pet:settings", AppSettingsChangedEvent{
-		PetCount: settings.PetCount,
-		MaxPets:  settings.MaxPets,
+		PetCount:  settings.PetCount,
+		MaxPets:   settings.MaxPets,
+		Shortcuts: settings.Shortcuts,
 	})
 }
 
@@ -258,16 +372,15 @@ func registerPetContextMenu(app *application.App, manager *PetManager, profile p
 	menu := app.ContextMenu.New()
 
 	menu.Add(profile.Title + "：原地待机").OnClick(func(_ *application.Context) {
-		setMovementMode(profile.WindowName, movementModeIdle)
-		setPetAnimationState(petWindow, "idle")
+		manager.setPetRuntimeMode(&petRuntime{profile: profile, window: petWindow, visible: true}, movementModeIdle)
 	})
 
 	menu.Add(profile.Title + "：沿窗口边缘巡游").OnClick(func(_ *application.Context) {
-		setMovementMode(profile.WindowName, movementModeEdgeWander)
+		manager.setPetRuntimeMode(&petRuntime{profile: profile, window: petWindow, visible: true}, movementModeEdgeWander)
 	})
 
 	menu.Add(profile.Title + "：跟随鼠标").OnClick(func(_ *application.Context) {
-		setMovementMode(profile.WindowName, movementModeFollowMouse)
+		manager.setPetRuntimeMode(&petRuntime{profile: profile, window: petWindow, visible: true}, movementModeFollowMouse)
 	})
 
 	menu.AddSeparator()
