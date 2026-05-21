@@ -1,0 +1,319 @@
+/*
+  CyberNeko 第一阶段样式。
+  目标是让 WebView 完全透明，只绘制猫咪占位角色本身。
+*/
+
+:root {
+    color-scheme: light;
+    background: transparent;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+}
+
+html,
+body {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    overflow: hidden;
+    background: transparent;
+}
+
+body {
+    /*
+      前端层面先让整个页面默认不接收鼠标事件。
+      真正可交互的猫咪主体会单独恢复 pointer-events。
+      注意：这不能替代操作系统级 click-through；它只避免 DOM 空白区域拦截事件。
+    */
+    pointer-events: none;
+}
+
+#pet-stage {
+    position: fixed;
+    inset: 0;
+    display: grid;
+    place-items: end center;
+    background: transparent;
+    pointer-events: none;
+}
+
+.neko-speech-bubble {
+    position: absolute;
+    top: 7px;
+    left: 50%;
+    z-index: 10;
+    max-width: 172px;
+    min-height: 24px;
+    padding: 8px 11px;
+    color: #20242c;
+    background: rgba(255, 255, 255, 0.94);
+    border: 3px solid rgba(23, 25, 31, 0.9);
+    border-radius: 8px;
+    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.18);
+    font-size: 14px;
+    font-weight: 700;
+    line-height: 1.25;
+    text-align: center;
+    word-break: keep-all;
+    overflow-wrap: anywhere;
+    opacity: 0;
+    transform: translate(-50%, -6px) scale(0.96);
+    transition: opacity 160ms ease, transform 160ms ease;
+    pointer-events: none;
+}
+
+.neko-speech-bubble::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    bottom: -12px;
+    width: 18px;
+    height: 18px;
+    background: rgba(255, 255, 255, 0.94);
+    border-right: 3px solid rgba(23, 25, 31, 0.9);
+    border-bottom: 3px solid rgba(23, 25, 31, 0.9);
+    transform: translateX(-50%) rotate(45deg);
+}
+
+.neko-speech-bubble[data-visible="true"] {
+    opacity: 1;
+    transform: translate(-50%, 0) scale(1);
+}
+
+.neko-hit-area {
+    position: relative;
+    width: 176px;
+    height: 210px;
+    display: grid;
+    place-items: center;
+    pointer-events: auto;
+    cursor: grab;
+    -webkit-user-drag: none;
+    touch-action: none;
+}
+
+.neko-hit-area:active {
+    cursor: grabbing;
+}
+
+.neko-sprite {
+    position: relative;
+    width: 148px;
+    height: 178px;
+    transform-origin: 50% 86%;
+}
+
+.neko-hit-area[data-direction="left"] .neko-sprite {
+    scale: -1 1;
+}
+
+.neko-ear {
+    position: absolute;
+    top: 5px;
+    width: 44px;
+    height: 52px;
+    background: #2d2f37;
+    border: 4px solid #17191f;
+    transform: rotate(45deg);
+    z-index: 1;
+}
+
+.neko-ear::after {
+    content: "";
+    position: absolute;
+    inset: 12px;
+    background: #ff8ea3;
+    border-radius: 2px;
+}
+
+.neko-ear-left {
+    left: 22px;
+}
+
+.neko-ear-right {
+    right: 22px;
+}
+
+.neko-head {
+    position: absolute;
+    top: 28px;
+    left: 18px;
+    width: 112px;
+    height: 100px;
+    background: #343741;
+    border: 4px solid #17191f;
+    border-radius: 50% 50% 46% 46%;
+    z-index: 2;
+}
+
+.neko-eye {
+    position: absolute;
+    top: 39px;
+    width: 15px;
+    height: 20px;
+    background: #6ff3d6;
+    border: 3px solid #111318;
+    border-radius: 50%;
+    box-shadow: 0 0 10px rgba(111, 243, 214, 0.75);
+}
+
+.neko-eye-left {
+    left: 28px;
+}
+
+.neko-eye-right {
+    right: 28px;
+}
+
+.neko-muzzle {
+    position: absolute;
+    left: 43px;
+    top: 64px;
+    width: 24px;
+    height: 13px;
+    border-bottom: 3px solid #15171c;
+    border-radius: 0 0 18px 18px;
+}
+
+.neko-muzzle::before,
+.neko-muzzle::after {
+    content: "";
+    position: absolute;
+    top: -8px;
+    width: 5px;
+    height: 5px;
+    background: #15171c;
+    border-radius: 50%;
+}
+
+.neko-muzzle::before {
+    left: 8px;
+}
+
+.neko-muzzle::after {
+    right: 8px;
+}
+
+.neko-body {
+    position: absolute;
+    left: 37px;
+    top: 106px;
+    width: 76px;
+    height: 56px;
+    background: #343741;
+    border: 4px solid #17191f;
+    border-radius: 40% 40% 42% 42%;
+    z-index: 1;
+}
+
+.neko-tail {
+    position: absolute;
+    right: 0;
+    top: 103px;
+    width: 70px;
+    height: 38px;
+    border: 8px solid #17191f;
+    border-left: 0;
+    border-bottom: 0;
+    border-radius: 0 30px 0 0;
+    transform-origin: 10px 30px;
+    z-index: 0;
+}
+
+.neko-shadow {
+    position: absolute;
+    left: 27px;
+    bottom: 0;
+    width: 96px;
+    height: 18px;
+    background: rgba(0, 0, 0, 0.18);
+    border-radius: 50%;
+    filter: blur(2px);
+}
+
+.neko-hit-area[data-state="idle"] .neko-sprite {
+    animation: idle-bob 900ms steps(2, end) infinite;
+}
+
+.neko-hit-area[data-state="walking"] .neko-sprite {
+    animation: walk-bob 300ms steps(2, end) infinite;
+}
+
+.neko-hit-area[data-state="walking"] .neko-tail {
+    animation: tail-swish 300ms steps(2, end) infinite;
+}
+
+@keyframes idle-bob {
+    0%,
+    100% {
+        transform: translateY(0);
+    }
+
+    50% {
+        transform: translateY(4px);
+    }
+}
+
+@keyframes walk-bob {
+    0%,
+    100% {
+        transform: translate(-5px, 0) rotate(-2deg);
+    }
+
+    50% {
+        transform: translate(5px, 2px) rotate(2deg);
+    }
+}
+
+@keyframes tail-swish {
+    0%,
+    100% {
+        transform: rotate(-8deg);
+    }
+
+    50% {
+        transform: rotate(10deg);
+    }
+}
+
+.neko-hit-area[data-pet="momo"] .neko-ear,
+.neko-hit-area[data-pet="momo"] .neko-head,
+.neko-hit-area[data-pet="momo"] .neko-body {
+    background: #f2a7c3;
+    border-color: #21151d;
+}
+
+.neko-hit-area[data-pet="momo"] .neko-ear::after {
+    background: #ffd166;
+}
+
+.neko-hit-area[data-pet="momo"] .neko-eye {
+    background: #8ee86f;
+    border-color: #130f14;
+    box-shadow: 0 0 10px rgba(142, 232, 111, 0.78);
+}
+
+.neko-hit-area[data-pet="momo"] .neko-muzzle {
+    border-color: #21151d;
+}
+
+.neko-hit-area[data-pet="momo"] .neko-muzzle::before,
+.neko-hit-area[data-pet="momo"] .neko-muzzle::after {
+    background: #21151d;
+}
+
+.neko-hit-area[data-pet="momo"] .neko-tail {
+    border-color: #21151d;
+}
+
+body[data-pet="momo"] .neko-speech-bubble {
+    color: #2b1622;
+    border-color: rgba(66, 27, 42, 0.92);
+}
+
+body[data-pet="momo"] .neko-speech-bubble::after {
+    border-color: rgba(66, 27, 42, 0.92);
+}

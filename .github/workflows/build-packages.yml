@@ -1,0 +1,103 @@
+name: Build Packages
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*'
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  test:
+    name: Test
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Build frontend
+        working-directory: frontend
+        run: npm run build
+
+      - name: Run Go tests
+        run: go test ./...
+
+  windows-amd64:
+    name: Package Windows amd64
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install Wails 3 CLI
+        run: |
+          go install github.com/wailsapp/wails/v3/cmd/wails3@v3.0.0-alpha.73
+          echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
+
+      - name: Build Windows executable
+        env:
+          ARCH: amd64
+        run: wails3 task windows:build
+
+      - name: Add WebView2 bootstrapper
+        run: wails3 generate webview2bootstrapper -dir build/windows/nsis
+
+      - name: Create zip package
+        run: |
+          set -euo pipefail
+          mkdir -p dist/CyberNeko-windows-amd64
+          cp bin/CyberNeko.exe dist/CyberNeko-windows-amd64/CyberNeko.exe
+          cp build/windows/nsis/MicrosoftEdgeWebview2Setup.exe dist/CyberNeko-windows-amd64/MicrosoftEdgeWebview2Setup.exe
+          cd dist
+          zip -r CyberNeko-windows-amd64.zip CyberNeko-windows-amd64
+
+      - name: Upload workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: CyberNeko-windows-amd64
+          path: dist/CyberNeko-windows-amd64.zip
+          if-no-files-found: error
+
+      - name: Upload release asset
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/CyberNeko-windows-amd64.zip

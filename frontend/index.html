@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <link rel="stylesheet" href="/style.css"/>
+    <title>CyberNeko</title>
+</head>
+<body>
+<main id="pet-stage" aria-label="CyberNeko transparent pet stage">
+    <div id="neko-speech" class="neko-speech-bubble" aria-live="polite"></div>
+    <!--
+      只有 .neko-hit-area 是第一阶段的鼠标命中主体。
+      左键拖拽由 frontend/src/main.js 使用 Pointer Events 手动调用 Window.SetPosition。
+      frontend/src/main.js 会按 pet profile 绑定对应的右键系统菜单。
+    -->
+    <section
+        id="neko"
+        class="neko-hit-area"
+        role="img"
+        aria-label="CyberNeko desktop pet"
+        data-state="idle"
+    >
+        <div class="neko-sprite" aria-hidden="true">
+            <div class="neko-ear neko-ear-left"></div>
+            <div class="neko-ear neko-ear-right"></div>
+            <div class="neko-head">
+                <div class="neko-eye neko-eye-left"></div>
+                <div class="neko-eye neko-eye-right"></div>
+                <div class="neko-muzzle"></div>
+            </div>
+            <div class="neko-body"></div>
+            <div class="neko-tail"></div>
+            <div class="neko-shadow"></div>
+        </div>
+    </section>
+</main>
+<script type="module" src="/src/main.js"></script>
+</body>
+</html>
