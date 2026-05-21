@@ -88,7 +88,6 @@ jobs:
           $env:ARCH = "amd64"
           wails3 task windows:build
 
-
       - name: Create zip package
         shell: pwsh
         run: |
@@ -103,8 +102,75 @@ jobs:
           path: dist/CyberNeko-windows-amd64.zip
           if-no-files-found: error
 
-      - name: Upload release asset
-        if: startsWith(github.ref, 'refs/tags/v')
+  macos:
+    name: Package macOS ${{ matrix.arch }}
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 25
+    needs: test
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: arm64
+            runner: macos-latest
+          - arch: amd64
+            runner: macos-15-intel
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install Wails 3 CLI
+        run: |
+          go install github.com/wailsapp/wails/v3/cmd/wails3@v3.0.0-alpha.73
+          echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
+
+      - name: Build macOS app bundle
+        run: |
+          ARCH="${{ matrix.arch }}" wails3 task darwin:package
+
+      - name: Create zip package
+        run: |
+          mkdir -p dist
+          ditto -c -k --sequesterRsrc --keepParent "bin/CyberNeko.app" "dist/CyberNeko-macos-${{ matrix.arch }}.zip"
+
+      - name: Upload workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: CyberNeko-macos-${{ matrix.arch }}
+          path: dist/CyberNeko-macos-${{ matrix.arch }}.zip
+          if-no-files-found: error
+
+  release:
+    name: Publish GitHub Release assets
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs:
+      - windows-amd64
+      - macos
+    if: startsWith(github.ref, 'refs/tags/v')
+    steps:
+      - name: Download package artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist/release
+
+      - name: Show release assets
+        run: find dist/release -maxdepth 3 -type f -print
+
+      - name: Upload release assets
         uses: softprops/action-gh-release@v2
         with:
-          files: dist/CyberNeko-windows-amd64.zip
+          files: dist/release/**/*.zip

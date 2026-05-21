@@ -69,8 +69,9 @@ npm run build
 
 仓库内置 `.github/workflows/build-packages.yml`：
 
-- push 到 `main` 或手动运行 workflow 时，会自动构建 Windows amd64 zip 并上传为 Actions artifact。
-- 创建 `v*` tag（例如 `v0.1.0`）时，会额外把 zip 上传到 GitHub Release。
+- push 到 `main` 或手动运行 workflow 时，会自动构建 Windows amd64、macOS arm64、macOS amd64 三份 zip，并上传为 Actions artifact。
+- 创建 `v*` tag（例如 `v0.1.0`）时，会额外把这些 zip 汇总上传到 GitHub Release。
+- macOS 包当前使用 ad-hoc 签名，尚未接入 Apple Developer ID 公证；首次打开时如遇 Gatekeeper 提示，可右键选择“打开”，或在终端执行 `xattr -dr com.apple.quarantine CyberNeko.app` 后再启动。
 
 发布一个带 Release 包的版本：
 
