@@ -3,17 +3,13 @@
 <head>
     <meta charset="UTF-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <link rel="icon" type="image/svg+xml" href="/logo.svg"/>
     <link rel="stylesheet" href="/style.css"/>
     <title>CyberNeko</title>
 </head>
 <body>
 <main id="pet-stage" aria-label="CyberNeko transparent pet stage">
     <div id="neko-speech" class="neko-speech-bubble" aria-live="polite"></div>
-    <!--
-      只有 .neko-hit-area 是第一阶段的鼠标命中主体。
-      左键拖拽由 frontend/src/main.js 使用 Pointer Events 手动调用 Window.SetPosition。
-      frontend/src/main.js 会按 pet profile 绑定对应的右键系统菜单。
-    -->
     <section
         id="neko"
         class="neko-hit-area"
@@ -22,6 +18,7 @@
         data-state="idle"
     >
         <div class="neko-sprite" aria-hidden="true">
+            <img id="pet-custom-image" class="pet-custom-image" alt=""/>
             <div class="neko-ear neko-ear-left"></div>
             <div class="neko-ear neko-ear-right"></div>
             <div class="neko-head">
@@ -35,6 +32,41 @@
         </div>
     </section>
 </main>
+
+<main id="settings-panel" class="settings-shell" aria-labelledby="settings-title">
+    <header class="settings-header">
+        <div class="settings-brand">
+            <img class="settings-logo" src="/logo.svg" alt=""/>
+            <div>
+                <h1 id="settings-title">CyberNeko</h1>
+                <p>桌宠设置</p>
+            </div>
+        </div>
+        <button id="settings-close" class="icon-button" type="button" aria-label="关闭设置">×</button>
+    </header>
+
+    <section class="settings-section" aria-labelledby="pet-count-title">
+        <div class="section-heading">
+            <h2 id="pet-count-title">启动宠物数量</h2>
+            <output id="pet-count-output" for="pet-count-range pet-count-number">2</output>
+        </div>
+        <div class="count-controls">
+            <input id="pet-count-range" type="range" min="1" max="6" step="1" value="2" aria-label="启动宠物数量"/>
+            <input id="pet-count-number" type="number" min="1" max="6" step="1" value="2" aria-label="启动宠物数量数值"/>
+            <button id="pet-count-save" class="primary-button" type="button">应用</button>
+        </div>
+    </section>
+
+    <section class="settings-section" aria-labelledby="pet-images-title">
+        <div class="section-heading">
+            <h2 id="pet-images-title">宠物图片</h2>
+        </div>
+        <div id="pet-image-list" class="pet-image-list"></div>
+    </section>
+
+    <p id="settings-status" class="settings-status" role="status" aria-live="polite"></p>
+</main>
+
 <script type="module" src="/src/main.js"></script>
 </body>
 </html>

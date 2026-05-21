@@ -5,11 +5,17 @@
 // @ts-ignore: Unused imports
 import type { Events } from "@wailsio/runtime";
 
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore: Unused imports
+import type * as main$0 from "../../../../fanwenbin/cyberneko/models.js";
+
 declare module "@wailsio/runtime" {
     namespace Events {
         interface CustomEvents {
             "pet:direction": string;
+            "pet:settings": main$0.AppSettingsChangedEvent;
             "pet:state": string;
+            "pet:visuals": main$0.PetVisualsChangedEvent;
         }
     }
 }
