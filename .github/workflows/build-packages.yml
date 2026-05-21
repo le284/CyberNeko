@@ -17,10 +17,15 @@ permissions:
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   test:
     name: Test
     runs-on: macos-latest
+    timeout-minutes: 15
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -52,6 +57,7 @@ jobs:
   windows-amd64:
     name: Package Windows amd64
     runs-on: windows-latest
+    timeout-minutes: 20
     needs: test
     steps:
       - name: Checkout
@@ -82,16 +88,12 @@ jobs:
           $env:ARCH = "amd64"
           wails3 task windows:build
 
-      - name: Add WebView2 bootstrapper
-        shell: pwsh
-        run: wails3 generate webview2bootstrapper -dir build/windows/nsis
 
       - name: Create zip package
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force dist/CyberNeko-windows-amd64 | Out-Null
           Copy-Item bin/CyberNeko.exe dist/CyberNeko-windows-amd64/CyberNeko.exe
-          Copy-Item build/windows/nsis/MicrosoftEdgeWebview2Setup.exe dist/CyberNeko-windows-amd64/MicrosoftEdgeWebview2Setup.exe
           Compress-Archive -Path dist/CyberNeko-windows-amd64 -DestinationPath dist/CyberNeko-windows-amd64.zip -Force
 
       - name: Upload workflow artifact
