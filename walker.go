@@ -14,9 +14,12 @@ const (
 	petWindowWidth  = 220
 	petWindowHeight = 240
 
+	// petPerchEdgeOffset 是从透明窗口左上角到“趴边线”的垂直距离。
+	// 边缘巡游时，目标窗口边缘会穿过猫咪两只前爪，让它看起来像从窗口后面探出来。
+	petPerchEdgeOffset = 154
+
 	// petGroundOffset 是从透明窗口左上角到“脚底/阴影底部”的垂直距离。
-	// 这个值必须和 frontend/public/style.css 中的角色布局保持一致：窗口高 240，主体视觉底部约在 224。
-	// 用 target.Y - petGroundOffset 可以让猫咪视觉脚底踩在目标窗口的上边缘。
+	// 自由移动时仍使用完整站立姿态，保持和原有拖拽/跟随鼠标体验一致。
 	petGroundOffset = 224
 
 	walkStepPixels      = 5
@@ -39,14 +42,17 @@ type screenPoint struct {
 }
 
 type targetRect struct {
-	X            int
-	Y            int
-	Width        int
-	Height       int
-	ScreenX      int
-	ScreenY      int
-	ScreenWidth  int
-	ScreenHeight int
+	X                   int
+	Y                   int
+	Width               int
+	Height              int
+	ScreenX             int
+	ScreenY             int
+	ScreenWidth         int
+	ScreenHeight        int
+	Scale               float64
+	VisualEdge          string
+	AllowBottomOverflow bool
 }
 
 type walkLine struct {
@@ -54,6 +60,7 @@ type walkLine struct {
 	Right int
 	Y     int
 	Edge  string
+	Scale float64
 }
 
 type petVisual struct {
@@ -72,10 +79,7 @@ func startWindowEdgeWanderer(app *application.App, window *application.WebviewWi
 		ticker := time.NewTicker(walkTick)
 		defer ticker.Stop()
 
-		target := screenTarget(app)
-		if activeTarget, ok := activeWindowTarget(); ok {
-			target = activeTarget
-		}
+		target := initialWalkTarget(app)
 
 		line := lineForTarget(target)
 		x := initialXForLine(line, startRatio)
@@ -86,6 +90,7 @@ func startWindowEdgeWanderer(app *application.App, window *application.WebviewWi
 
 		visual.emitState("idle")
 		visual.emitDirection("right")
+		visual.emitEdge(line.Edge)
 		movePetWindow(window, x, line.Y)
 
 		for now := range ticker.C {
@@ -102,12 +107,16 @@ func startWindowEdgeWanderer(app *application.App, window *application.WebviewWi
 				actualX, actualY := window.Position()
 				x = actualX
 
-				feetX := actualX + petWindowWidth/2
-				feetY := actualY + petGroundOffset
-				if edgeTarget, ok := windowEdgeTargetAt(feetX, feetY); ok {
-					target = edgeTarget
-				} else if nextTarget, ok := activeWindowTarget(); ok {
-					target = nextTarget
+				if dockTarget, ok := dockEdgeTarget(app); ok {
+					target = dockTarget
+				} else {
+					feetX := actualX + scaledLength(petWindowWidth, line.Scale)/2
+					feetY := actualY + edgeAnchorOffset(line)
+					if edgeTarget, ok := windowEdgeTargetAt(feetX, feetY); ok {
+						target = edgeTarget
+					} else if nextTarget, ok := activeWindowTarget(); ok {
+						target = nextTarget
+					}
 				}
 
 				nextLine := lineForTarget(target)
@@ -117,6 +126,7 @@ func startWindowEdgeWanderer(app *application.App, window *application.WebviewWi
 					destination = chooseNextWaypoint(rng, line, x)
 					waitUntil = now.Add(randomPause(rng))
 				}
+				visual.emitEdge(line.Edge)
 				lastTargetRefresh = now
 			}
 
@@ -165,6 +175,8 @@ func startWindowEdgeWanderer(app *application.App, window *application.WebviewWi
 }
 
 func followMouse(app *application.App, window *application.WebviewWindow, visual *petVisual) {
+	visual.emitEdge("free")
+
 	cursor, ok := cursorPosition()
 	if !ok {
 		visual.emitState("idle")
@@ -240,6 +252,10 @@ func (visual *petVisual) emitDirection(direction string) {
 	visual.window.ExecJS(fmt.Sprintf("window.__cyberNekoSetDirection?.(%s)", strconv.Quote(direction)))
 }
 
+func (visual *petVisual) emitEdge(edge string) {
+	visual.window.ExecJS(fmt.Sprintf("window.__cyberNekoSetEdge?.(%s)", strconv.Quote(edge)))
+}
+
 func initialXForLine(line walkLine, ratio float64) int {
 	if line.Right <= line.Left {
 		return line.Left
@@ -292,6 +308,18 @@ func movePetWindow(window *application.WebviewWindow, x int, y int) {
 	window.ExecJS(fmt.Sprintf("window.__cyberNekoSetPosition?.(%d,%d)", x, y))
 }
 
+func initialWalkTarget(app *application.App) targetRect {
+	if dockTarget, ok := dockEdgeTarget(app); ok {
+		return dockTarget
+	}
+
+	target := screenTarget(app)
+	if activeTarget, ok := activeWindowTarget(); ok {
+		target = activeTarget
+	}
+	return target
+}
+
 func screenTarget(app *application.App) targetRect {
 	screen := app.Screen.GetPrimary()
 	if screen == nil {
@@ -330,21 +358,60 @@ func screenTargetForPoint(app *application.App, x int, y int) targetRect {
 }
 
 func lineForTarget(target targetRect) walkLine {
-	left := target.X
-	right := target.X + max(0, target.Width-petWindowWidth)
+	scale := targetScale(target)
+	petWidth := scaledLength(petWindowWidth, scale)
+	petHeight := scaledLength(petWindowHeight, scale)
+	edgeOffset := scaledLength(petPerchEdgeOffset, scale)
 
-	// 上边缘空间足够时，让猫咪脚底踩在当前窗口上边缘；否则改为踩在当前窗口下边缘。
-	y := target.Y - petGroundOffset
+	left := target.X
+	right := target.X + max(0, target.Width-petWidth)
+
+	// 上边缘空间足够时趴在上边缘；否则趴到下边缘。
+	y := target.Y - edgeOffset
 	edge := "top"
 	if y < target.ScreenY {
-		y = target.Y + target.Height - petGroundOffset
+		y = target.Y + target.Height - edgeOffset
 		edge = "bottom"
 	}
 
-	bottomLimit := target.ScreenY + target.ScreenHeight - petWindowHeight
-	y = clamp(y, target.ScreenY, max(target.ScreenY, bottomLimit))
+	if edge == "top" {
+		if target.AllowBottomOverflow {
+			y = max(y, target.ScreenY)
+		} else {
+			bottomLimit := target.ScreenY + target.ScreenHeight - petHeight
+			y = clamp(y, target.ScreenY, max(target.ScreenY, bottomLimit))
+		}
+	} else if y < target.ScreenY {
+		y = target.ScreenY
+	}
 
-	return walkLine{Left: left, Right: right, Y: y, Edge: edge}
+	visualEdge := edge
+	if target.VisualEdge != "" {
+		visualEdge = target.VisualEdge
+	}
+
+	return walkLine{Left: left, Right: right, Y: y, Edge: visualEdge, Scale: scale}
+}
+
+func edgeAnchorOffset(line walkLine) int {
+	if line.Edge == "top" || line.Edge == "bottom" || line.Edge == "dock" {
+		return scaledLength(petPerchEdgeOffset, line.Scale)
+	}
+	return scaledLength(petGroundOffset, line.Scale)
+}
+
+func targetScale(target targetRect) float64 {
+	if target.Scale <= 0 {
+		return 1
+	}
+	return target.Scale
+}
+
+func scaledLength(value int, scale float64) int {
+	if scale <= 0 {
+		scale = 1
+	}
+	return int(math.Round(float64(value) * scale))
 }
 
 func clamp(value int, low int, high int) int {

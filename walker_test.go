@@ -8,8 +8,8 @@ import (
 func TestLineForTargetUsesTopEdgeWhenThereIsRoom(t *testing.T) {
 	line := lineForTarget(targetRect{X: 100, Y: 300, Width: 800, Height: 500, ScreenX: 0, ScreenY: 0, ScreenWidth: 1200, ScreenHeight: 900})
 
-	if line.Y != 76 {
-		t.Fatalf("expected pet feet on top edge, got y=%d", line.Y)
+	if line.Y != 146 {
+		t.Fatalf("expected pet paws on top edge, got y=%d", line.Y)
 	}
 	if line.Left != 100 || line.Right != 680 {
 		t.Fatalf("unexpected walking range: %+v", line)
@@ -22,8 +22,8 @@ func TestLineForTargetUsesTopEdgeWhenThereIsRoom(t *testing.T) {
 func TestLineForTargetFallsBackToBottomEdgeWhenTopHasNoRoom(t *testing.T) {
 	line := lineForTarget(targetRect{X: 100, Y: 33, Width: 800, Height: 500, ScreenX: 0, ScreenY: 0, ScreenWidth: 1200, ScreenHeight: 900})
 
-	if line.Y != 309 {
-		t.Fatalf("expected pet feet on bottom edge, got y=%d", line.Y)
+	if line.Y != 379 {
+		t.Fatalf("expected pet paws on bottom edge, got y=%d", line.Y)
 	}
 	if line.Edge != "bottom" {
 		t.Fatalf("expected bottom edge, got %q", line.Edge)

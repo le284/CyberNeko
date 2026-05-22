@@ -372,8 +372,15 @@ function initPetWindow() {
         }
     }
 
+    function setPetEdge(nextEdge) {
+        if (["top", "bottom", "dock", "free"].includes(nextEdge)) {
+            petElement.dataset.edge = nextEdge;
+        }
+    }
+
     window.__cyberNekoSetState = setPetState;
     window.__cyberNekoSetDirection = setPetDirection;
+    window.__cyberNekoSetEdge = setPetEdge;
 
     window.setInterval(() => {
         const frameCount = currentState === PetState.Walking ? 4 : 2;
@@ -412,6 +419,7 @@ function initPetWindow() {
         }
 
         event.preventDefault();
+        setPetEdge("free");
         pauseAutoMove(6000);
         manualDrag.active = true;
         manualDrag.ready = false;
@@ -490,6 +498,7 @@ function initPetWindow() {
 
     setPetState(PetState.Idle);
     setPetDirection("right");
+    setPetEdge("free");
     window.setTimeout(() => showSpeechBubble(petProfile.greetingLine), 1600 + petSlot * 450);
     scheduleNextSpeechBubble();
 }

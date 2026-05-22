@@ -18,6 +18,7 @@
     --pet-eye-glow: rgba(111, 243, 214, 0.75);
     --pet-bubble-text: #20242c;
     --pet-bubble-border: rgba(23, 25, 31, 0.9);
+    --pet-perch-edge-y: 154px;
     --settings-bg: #f8fafc;
     --settings-ink: #172033;
     --settings-muted: #667085;
@@ -134,6 +135,30 @@ body[data-view="settings"] #pet-stage {
     cursor: grabbing;
 }
 
+.neko-edge-ledge {
+    position: absolute;
+    top: var(--pet-perch-edge-y);
+    left: 0;
+    right: 0;
+    z-index: 3;
+    height: 62px;
+    opacity: 0;
+    pointer-events: none;
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0) 18%),
+        linear-gradient(180deg, rgba(38, 47, 63, 0.96), rgba(18, 24, 34, 0.96));
+    border-top: 4px solid rgba(255, 255, 255, 0.24);
+    box-shadow:
+        0 -8px 14px rgba(0, 0, 0, 0.14),
+        0 10px 18px rgba(0, 0, 0, 0.22);
+    transition: opacity 120ms ease;
+}
+
+#neko[data-edge="top"] ~ .neko-edge-ledge,
+#neko[data-edge="bottom"] ~ .neko-edge-ledge {
+    opacity: 1;
+}
+
 .neko-sprite {
     position: relative;
     width: 148px;
@@ -166,7 +191,8 @@ body[data-view="settings"] #pet-stage {
 .neko-hit-area[data-custom-image="true"] .neko-ear,
 .neko-hit-area[data-custom-image="true"] .neko-head,
 .neko-hit-area[data-custom-image="true"] .neko-body,
-.neko-hit-area[data-custom-image="true"] .neko-tail {
+.neko-hit-area[data-custom-image="true"] .neko-tail,
+.neko-hit-area[data-custom-image="true"] .neko-paw {
     display: none;
 }
 
@@ -283,6 +309,48 @@ body[data-view="settings"] #pet-stage {
     z-index: 0;
 }
 
+.neko-paw {
+    position: absolute;
+    top: 124px;
+    z-index: 4;
+    display: none;
+    width: 31px;
+    height: 78px;
+    background: var(--pet-fur);
+    border: 4px solid var(--pet-outline);
+    border-radius: 18px 18px 15px 15px;
+    box-shadow: 0 8px 10px rgba(0, 0, 0, 0.14);
+}
+
+.neko-paw::before,
+.neko-paw::after {
+    content: "";
+    position: absolute;
+    bottom: 12px;
+    width: 5px;
+    height: 14px;
+    background: rgba(255, 255, 255, 0.14);
+    border-radius: 999px;
+}
+
+.neko-paw::before {
+    left: 8px;
+}
+
+.neko-paw::after {
+    right: 8px;
+}
+
+.neko-paw-left {
+    left: 30px;
+    rotate: 4deg;
+}
+
+.neko-paw-right {
+    right: 30px;
+    rotate: -4deg;
+}
+
 .neko-shadow {
     position: absolute;
     left: 27px;
@@ -292,6 +360,91 @@ body[data-view="settings"] #pet-stage {
     background: rgba(0, 0, 0, 0.18);
     border-radius: 50%;
     filter: blur(2px);
+}
+
+.neko-hit-area:is([data-edge="top"], [data-edge="bottom"], [data-edge="dock"]) {
+    height: 230px;
+}
+
+.neko-hit-area:is([data-edge="top"], [data-edge="bottom"], [data-edge="dock"]) .neko-sprite {
+    top: -34px;
+    width: 158px;
+    height: 188px;
+    transform-origin: 50% 72%;
+}
+
+.neko-hit-area:is([data-edge="top"], [data-edge="bottom"], [data-edge="dock"]) .neko-ear {
+    top: 4px;
+}
+
+.neko-hit-area:is([data-edge="top"], [data-edge="bottom"], [data-edge="dock"]) .neko-ear-left {
+    left: 25px;
+}
+
+.neko-hit-area:is([data-edge="top"], [data-edge="bottom"], [data-edge="dock"]) .neko-ear-right {
+    right: 25px;
+}
+
+.neko-hit-area:is([data-edge="top"], [data-edge="bottom"], [data-edge="dock"]) .neko-head {
+    top: 28px;
+    left: 19px;
+    width: 112px;
+    height: 98px;
+    border-radius: 52% 52% 45% 45%;
+}
+
+.neko-hit-area:is([data-edge="top"], [data-edge="bottom"], [data-edge="dock"]) .neko-eye {
+    top: 50px;
+    width: 19px;
+    height: 4px;
+    background: var(--pet-outline);
+    border: 0;
+    border-radius: 999px;
+    box-shadow: none;
+}
+
+.neko-hit-area:is([data-edge="top"], [data-edge="bottom"], [data-edge="dock"]) .neko-eye-left {
+    left: 27px;
+}
+
+.neko-hit-area:is([data-edge="top"], [data-edge="bottom"], [data-edge="dock"]) .neko-eye-right {
+    right: 27px;
+}
+
+.neko-hit-area:is([data-edge="top"], [data-edge="bottom"], [data-edge="dock"]) .neko-muzzle {
+    top: 66px;
+}
+
+.neko-hit-area:is([data-edge="top"], [data-edge="bottom"], [data-edge="dock"]) .neko-body,
+.neko-hit-area:is([data-edge="top"], [data-edge="bottom"], [data-edge="dock"]) .neko-tail,
+.neko-hit-area:is([data-edge="top"], [data-edge="bottom"], [data-edge="dock"]) .neko-shadow {
+    display: none;
+}
+
+.neko-hit-area:is([data-edge="top"], [data-edge="bottom"], [data-edge="dock"]) .neko-paw {
+    display: block;
+}
+
+.neko-hit-area:is([data-edge="top"], [data-edge="bottom"], [data-edge="dock"]) .pet-custom-image {
+    bottom: 54px;
+    max-height: 138px;
+    clip-path: inset(0 0 28px 0 round 8px);
+}
+
+.neko-hit-area:is([data-edge="top"], [data-edge="bottom"], [data-edge="dock"])[data-state="idle"] .neko-sprite {
+    animation: perch-idle-bob 1200ms ease-in-out infinite;
+}
+
+.neko-hit-area:is([data-edge="top"], [data-edge="bottom"], [data-edge="dock"])[data-state="walking"] .neko-sprite {
+    animation: perch-walk-bob 420ms ease-in-out infinite;
+}
+
+.neko-hit-area:is([data-edge="top"], [data-edge="bottom"], [data-edge="dock"])[data-state="walking"] .neko-paw-left {
+    animation: paw-dangle-left 420ms ease-in-out infinite;
+}
+
+.neko-hit-area:is([data-edge="top"], [data-edge="bottom"], [data-edge="dock"])[data-state="walking"] .neko-paw-right {
+    animation: paw-dangle-right 420ms ease-in-out infinite;
 }
 
 .neko-hit-area[data-state="idle"] .neko-sprite {
@@ -304,6 +457,50 @@ body[data-view="settings"] #pet-stage {
 
 .neko-hit-area[data-state="walking"] .neko-tail {
     animation: tail-swish 300ms steps(2, end) infinite;
+}
+
+@keyframes perch-idle-bob {
+    0%,
+    100% {
+        transform: translateY(0);
+    }
+
+    50% {
+        transform: translateY(3px);
+    }
+}
+
+@keyframes perch-walk-bob {
+    0%,
+    100% {
+        transform: translate(-3px, 0) rotate(-1deg);
+    }
+
+    50% {
+        transform: translate(3px, 2px) rotate(1deg);
+    }
+}
+
+@keyframes paw-dangle-left {
+    0%,
+    100% {
+        transform: translateY(0);
+    }
+
+    50% {
+        transform: translateY(6px);
+    }
+}
+
+@keyframes paw-dangle-right {
+    0%,
+    100% {
+        transform: translateY(5px);
+    }
+
+    50% {
+        transform: translateY(0);
+    }
 }
 
 @keyframes idle-bob {
