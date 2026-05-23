@@ -5,34 +5,34 @@ import (
 	"testing"
 )
 
-func TestLineForTargetUsesTopEdgeWhenThereIsRoom(t *testing.T) {
+func TestLineForTargetWalksOnTargetBottom(t *testing.T) {
 	line := lineForTarget(targetRect{X: 100, Y: 300, Width: 800, Height: 500, ScreenX: 0, ScreenY: 0, ScreenWidth: 1200, ScreenHeight: 900})
 
-	if line.Y != 146 {
-		t.Fatalf("expected pet paws on top edge, got y=%d", line.Y)
+	if line.Y != 576 {
+		t.Fatalf("expected pet feet on target bottom, got y=%d", line.Y)
 	}
-	if line.Left != 100 || line.Right != 680 {
+	if line.Left != 100 || line.Right != 580 {
 		t.Fatalf("unexpected walking range: %+v", line)
 	}
-	if line.Edge != "top" {
-		t.Fatalf("expected top edge, got %q", line.Edge)
+	if line.Edge != "free" {
+		t.Fatalf("expected free walking edge, got %q", line.Edge)
 	}
 }
 
-func TestLineForTargetFallsBackToBottomEdgeWhenTopHasNoRoom(t *testing.T) {
+func TestLineForTargetClampsToScreenBottom(t *testing.T) {
 	line := lineForTarget(targetRect{X: 100, Y: 33, Width: 800, Height: 500, ScreenX: 0, ScreenY: 0, ScreenWidth: 1200, ScreenHeight: 900})
 
-	if line.Y != 379 {
-		t.Fatalf("expected pet paws on bottom edge, got y=%d", line.Y)
+	if line.Y != 309 {
+		t.Fatalf("expected pet feet on lower target edge, got y=%d", line.Y)
 	}
-	if line.Edge != "bottom" {
-		t.Fatalf("expected bottom edge, got %q", line.Edge)
+	if line.Edge != "free" {
+		t.Fatalf("expected free walking edge, got %q", line.Edge)
 	}
 }
 
 func TestChooseNextWaypointStaysInsideLine(t *testing.T) {
 	rng := rand.New(rand.NewSource(1))
-	line := walkLine{Left: 100, Right: 300, Y: 50, Edge: "top"}
+	line := walkLine{Left: 100, Right: 300, Y: 50, Edge: "free"}
 
 	for i := 0; i < 64; i++ {
 		waypoint := chooseNextWaypoint(rng, line, 180)
@@ -56,7 +56,7 @@ func TestNextFollowPositionMovesTowardCursor(t *testing.T) {
 
 func TestNextFollowPositionStopsNearCursor(t *testing.T) {
 	bounds := targetRect{ScreenX: 0, ScreenY: 0, ScreenWidth: 1200, ScreenHeight: 900}
-	nextX, nextY, moving := nextFollowPosition(100, 100, screenPoint{X: 210, Y: 220}, bounds)
+	nextX, nextY, moving := nextFollowPosition(100, 100, screenPoint{X: 260, Y: 220}, bounds)
 
 	if moving {
 		t.Fatal("expected pet to stop near cursor")

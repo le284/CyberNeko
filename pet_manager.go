@@ -45,11 +45,6 @@ type PetManager struct {
 
 var basePetProfiles = []basePetProfile{
 	{ID: "neko", Title: "CyberNeko", WindowName: "pet-neko", MenuName: "neko-menu", StartRatio: 0.32},
-	{ID: "momo", Title: "CyberMomo", WindowName: "pet-momo", MenuName: "momo-menu", StartRatio: 0.68},
-	{ID: "sora", Title: "CyberSora", WindowName: "pet-sora", MenuName: "sora-menu", StartRatio: 0.18},
-	{ID: "luna", Title: "CyberLuna", WindowName: "pet-luna", MenuName: "luna-menu", StartRatio: 0.82},
-	{ID: "mika", Title: "CyberMika", WindowName: "pet-mika", MenuName: "mika-menu", StartRatio: 0.46},
-	{ID: "kuro", Title: "CyberKuro", WindowName: "pet-kuro", MenuName: "kuro-menu", StartRatio: 0.58},
 }
 
 func newPetManager(app *application.App, settings AppSettings, settingsPath string) *PetManager {

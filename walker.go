@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	petWindowWidth  = 220
+	petWindowWidth  = 320
 	petWindowHeight = 240
 
 	// petPerchEdgeOffset 是从透明窗口左上角到“趴边线”的垂直距离。
@@ -51,8 +51,6 @@ type targetRect struct {
 	ScreenWidth         int
 	ScreenHeight        int
 	Scale               float64
-	VisualEdge          string
-	AllowBottomOverflow bool
 }
 
 type walkLine struct {
@@ -107,16 +105,12 @@ func startWindowEdgeWanderer(app *application.App, window *application.WebviewWi
 				actualX, actualY := window.Position()
 				x = actualX
 
-				if dockTarget, ok := dockEdgeTarget(app); ok {
-					target = dockTarget
-				} else {
-					feetX := actualX + scaledLength(petWindowWidth, line.Scale)/2
-					feetY := actualY + edgeAnchorOffset(line)
-					if edgeTarget, ok := windowEdgeTargetAt(feetX, feetY); ok {
-						target = edgeTarget
-					} else if nextTarget, ok := activeWindowTarget(); ok {
-						target = nextTarget
-					}
+				feetX := actualX + scaledLength(petWindowWidth, line.Scale)/2
+				feetY := actualY + edgeAnchorOffset(line)
+				if edgeTarget, ok := windowEdgeTargetAt(feetX, feetY); ok {
+					target = edgeTarget
+				} else if nextTarget, ok := activeWindowTarget(); ok {
+					target = nextTarget
 				}
 
 				nextLine := lineForTarget(target)
@@ -309,10 +303,6 @@ func movePetWindow(window *application.WebviewWindow, x int, y int) {
 }
 
 func initialWalkTarget(app *application.App) targetRect {
-	if dockTarget, ok := dockEdgeTarget(app); ok {
-		return dockTarget
-	}
-
 	target := screenTarget(app)
 	if activeTarget, ok := activeWindowTarget(); ok {
 		target = activeTarget
@@ -361,40 +351,21 @@ func lineForTarget(target targetRect) walkLine {
 	scale := targetScale(target)
 	petWidth := scaledLength(petWindowWidth, scale)
 	petHeight := scaledLength(petWindowHeight, scale)
-	edgeOffset := scaledLength(petPerchEdgeOffset, scale)
+	groundOffset := scaledLength(petGroundOffset, scale)
 
 	left := target.X
 	right := target.X + max(0, target.Width-petWidth)
 
-	// 上边缘空间足够时趴在上边缘；否则趴到下边缘。
-	y := target.Y - edgeOffset
-	edge := "top"
-	if y < target.ScreenY {
-		y = target.Y + target.Height - edgeOffset
-		edge = "bottom"
-	}
+	// 普通巡游使用完整站立姿态，让脚底贴着目标区域底边左右移动。
+	y := target.Y + target.Height - groundOffset
+	bottomLimit := target.ScreenY + target.ScreenHeight - petHeight
+	y = clamp(y, target.ScreenY, max(target.ScreenY, bottomLimit))
 
-	if edge == "top" {
-		if target.AllowBottomOverflow {
-			y = max(y, target.ScreenY)
-		} else {
-			bottomLimit := target.ScreenY + target.ScreenHeight - petHeight
-			y = clamp(y, target.ScreenY, max(target.ScreenY, bottomLimit))
-		}
-	} else if y < target.ScreenY {
-		y = target.ScreenY
-	}
-
-	visualEdge := edge
-	if target.VisualEdge != "" {
-		visualEdge = target.VisualEdge
-	}
-
-	return walkLine{Left: left, Right: right, Y: y, Edge: visualEdge, Scale: scale}
+	return walkLine{Left: left, Right: right, Y: y, Edge: "free", Scale: scale}
 }
 
 func edgeAnchorOffset(line walkLine) int {
-	if line.Edge == "top" || line.Edge == "bottom" || line.Edge == "dock" {
+	if line.Edge == "top" || line.Edge == "bottom" {
 		return scaledLength(petPerchEdgeOffset, line.Scale)
 	}
 	return scaledLength(petGroundOffset, line.Scale)

@@ -18,6 +18,7 @@
         data-state="idle"
     >
         <div class="neko-sprite" aria-hidden="true">
+            <img id="pet-action-image" class="pet-action-image" alt=""/>
             <img id="pet-custom-image" class="pet-custom-image" alt=""/>
             <div class="neko-ear neko-ear-left"></div>
             <div class="neko-ear neko-ear-right"></div>
@@ -54,8 +55,8 @@
             <output id="pet-count-output" for="pet-count-range pet-count-number">1</output>
         </div>
         <div class="count-controls">
-            <input id="pet-count-range" type="range" min="1" max="6" step="1" value="1" aria-label="启动宠物数量"/>
-            <input id="pet-count-number" type="number" min="1" max="6" step="1" value="1" aria-label="启动宠物数量数值"/>
+            <input id="pet-count-range" type="range" min="1" max="1" step="1" value="1" aria-label="启动宠物数量"/>
+            <input id="pet-count-number" type="number" min="1" max="1" step="1" value="1" aria-label="启动宠物数量数值"/>
             <button id="pet-count-save" class="primary-button" type="button">应用</button>
         </div>
     </section>

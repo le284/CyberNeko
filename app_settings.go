@@ -9,7 +9,7 @@ import (
 
 const (
 	defaultPetCount = 1
-	maxPetCount     = 6
+	maxPetCount     = 1
 )
 
 // AppSettings 是会落盘的应用设置。

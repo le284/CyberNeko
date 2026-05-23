@@ -1,9 +1,17 @@
 import { Call, Events, Window } from "@wailsio/runtime";
 
+import cat30Url from "../../cat/3-0-transparent.webp";
+import cat31Url from "../../cat/3-1.png";
+import cat32Url from "../../cat/3-2.png";
+import cat33Url from "../../cat/3-3.png";
+import cat34Url from "../../cat/3-4.png";
+import cat35Url from "../../cat/3-5-transparent.webp";
+
 const SERVICE_PREFIX = "main.PetService.";
 const PET_IMAGES_STORAGE_KEY = "cyberneko.petImages.v1";
 const CUSTOM_IMAGE_MAX_SIDE = 360;
 const CUSTOM_GIF_MAX_BYTES = 4 * 1024 * 1024;
+const BACKGROUND_ALPHA_THRESHOLD = 238;
 const IS_MAC_PLATFORM = /mac|iphone|ipad|ipod/i.test(navigator.userAgentData?.platform || navigator.platform || "");
 
 const DEFAULT_SHORTCUTS = Object.freeze({
@@ -19,6 +27,39 @@ const SHORTCUT_ACTIONS = Object.freeze([
     Object.freeze({ id: "followMouse", label: "跟随鼠标" }),
     Object.freeze({ id: "cycle", label: "循环切换" }),
 ]);
+
+const PetAction = Object.freeze({
+    Idle: "idle",
+    Walking: "walking",
+    Wave: "wave",
+    HeadTilt: "headTilt",
+    Stretch: "stretch",
+    Blink: "blink",
+    Cute: "cute",
+});
+
+const PET_ACTIONS = Object.freeze([
+    Object.freeze({ id: PetAction.Wave, label: "招手", duration: 1800 }),
+    Object.freeze({ id: PetAction.HeadTilt, label: "歪头", duration: 2200 }),
+    Object.freeze({ id: PetAction.Stretch, label: "伸懒腰", duration: 2000 }),
+    Object.freeze({ id: PetAction.Blink, label: "眨眼睛", duration: 900 }),
+    Object.freeze({ id: PetAction.Cute, label: "卖萌", duration: 2400 }),
+]);
+
+const PET_ACTION_IMAGES = Object.freeze({
+    [PetAction.Idle]: cat31Url,
+    [PetAction.Walking]: cat30Url,
+    [PetAction.Wave]: cat31Url,
+    [PetAction.HeadTilt]: cat32Url,
+    [PetAction.Stretch]: cat33Url,
+    [PetAction.Blink]: cat34Url,
+    [PetAction.Cute]: cat35Url,
+});
+
+const DEFAULT_PET_ACTION = PetAction.Idle;
+const MAX_PET_SLOTS = 1;
+const transparentActionImageUrls = new Map();
+const transparentActionImagePromises = new Map();
 
 const PET_PROFILES = Object.freeze({
     neko: Object.freeze({
@@ -146,29 +187,6 @@ const PET_PROFILES = Object.freeze({
             "再忙也要休息",
         ]),
     }),
-    kuro: Object.freeze({
-        id: "kuro",
-        label: "CyberKuro",
-        menuId: "kuro-menu",
-        greetingLine: "暗色模式也有我",
-        doubleClickLine: "这下精神了",
-        theme: Object.freeze({
-            "--pet-fur": "#232833",
-            "--pet-outline": "#090b10",
-            "--pet-ear": "#67e8f9",
-            "--pet-eye": "#f472b6",
-            "--pet-eye-glow": "rgba(244, 114, 182, 0.72)",
-            "--pet-bubble-text": "#181b23",
-            "--pet-bubble-border": "rgba(9, 11, 16, 0.9)",
-        }),
-        speechLines: Object.freeze([
-            "我会安静陪你",
-            "边缘很适合散步",
-            "让我追一下鼠标",
-            "我把专注力递给你",
-            "今天也别太累",
-        ]),
-    }),
 });
 
 const query = new URLSearchParams(window.location.search);
@@ -232,6 +250,10 @@ function getStoredPetImage(slot) {
     return readPetImages()[String(slot)] || "";
 }
 
+function actionImageForSlot(slot, actionId = DEFAULT_PET_ACTION) {
+    return PET_ACTION_IMAGES[actionId] || PET_ACTION_IMAGES[DEFAULT_PET_ACTION] || "";
+}
+
 function setStoredPetImage(slot, dataUrl) {
     const images = readPetImages();
     if (dataUrl) {
@@ -247,8 +269,18 @@ function initPetWindow() {
     const petSlot = clampNumber(Number(query.get("slot") || 0), 0, 99);
     const petProfile = PET_PROFILES[requestedPetId] || PET_PROFILES.neko;
     const petElement = document.getElementById("neko");
+    const actionImageElement = document.getElementById("pet-action-image");
     const customImageElement = document.getElementById("pet-custom-image");
     const speechBubble = document.getElementById("neko-speech");
+
+    petElement.dataset.actionImage = "false";
+    actionImageElement.addEventListener("load", () => {
+        petElement.dataset.actionImage = actionImageElement.currentSrc ? "true" : "false";
+    });
+    actionImageElement.addEventListener("error", () => {
+        actionImageElement.removeAttribute("src");
+        petElement.dataset.actionImage = "false";
+    });
 
     document.title = petProfile.label;
     document.documentElement.dataset.pet = petProfile.id;
@@ -271,6 +303,7 @@ function initPetWindow() {
     const manualDrag = {
         active: false,
         ready: false,
+        moved: false,
         pointerId: null,
         startScreenX: 0,
         startScreenY: 0,
@@ -302,8 +335,10 @@ function initPetWindow() {
     };
 
     let currentState = PetState.Idle;
+    let currentAction = DEFAULT_PET_ACTION;
     let currentFrame = 0;
     let lastSpeechIndex = -1;
+    let actionTimer = 0;
     let speechHideTimer = 0;
     let speechNextTimer = 0;
 
@@ -355,6 +390,38 @@ function initPetWindow() {
         }, randomBetween(SPEECH_MIN_DELAY_MS, SPEECH_MAX_DELAY_MS));
     }
 
+    async function setPetAction(actionId) {
+        const imageUrl = PET_ACTION_IMAGES[actionId];
+        if (!imageUrl) {
+            return;
+        }
+
+        currentAction = actionId;
+        petElement.dataset.action = actionId;
+        const actionImageUrl = await transparentActionImageUrl(imageUrl);
+        if (currentAction !== actionId) {
+            return;
+        }
+        actionImageElement.src = actionImageUrl;
+    }
+
+    function playPetAction(actionId) {
+        const action = PET_ACTIONS.find((item) => item.id === actionId);
+        if (!action) {
+            return;
+        }
+
+        window.clearTimeout(actionTimer);
+        setPetAction(action.id);
+        showSpeechBubble(action.label);
+
+        if (action.id !== DEFAULT_PET_ACTION) {
+            actionTimer = window.setTimeout(() => {
+                setPetAction(currentState === PetState.Walking ? PetAction.Walking : DEFAULT_PET_ACTION);
+            }, action.duration);
+        }
+    }
+
     function setPetState(nextState) {
         if (!Object.values(PetState).includes(nextState)) {
             return;
@@ -364,6 +431,14 @@ function initPetWindow() {
         currentFrame = 0;
         petElement.dataset.state = nextState;
         petElement.dataset.frame = String(currentFrame);
+
+        if (nextState === PetState.Walking) {
+            setPetAction(PetAction.Walking);
+            return;
+        }
+        if (currentAction === PetAction.Walking) {
+            setPetAction(DEFAULT_PET_ACTION);
+        }
     }
 
     function setPetDirection(nextDirection) {
@@ -373,7 +448,7 @@ function initPetWindow() {
     }
 
     function setPetEdge(nextEdge) {
-        if (["top", "bottom", "dock", "free"].includes(nextEdge)) {
+        if (["top", "bottom", "free"].includes(nextEdge)) {
             petElement.dataset.edge = nextEdge;
         }
     }
@@ -423,6 +498,7 @@ function initPetWindow() {
         pauseAutoMove(6000);
         manualDrag.active = true;
         manualDrag.ready = false;
+        manualDrag.moved = false;
         manualDrag.pointerId = event.pointerId;
         manualDrag.startScreenX = event.screenX;
         manualDrag.startScreenY = event.screenY;
@@ -457,10 +533,14 @@ function initPetWindow() {
 
         const nextX = Math.round(manualDrag.startWindowX + event.screenX - manualDrag.startScreenX);
         const nextY = Math.round(manualDrag.startWindowY + event.screenY - manualDrag.startScreenY);
+        if (Math.abs(event.screenX - manualDrag.startScreenX) > 3 || Math.abs(event.screenY - manualDrag.startScreenY) > 3) {
+            manualDrag.moved = true;
+        }
         queueManualDragPosition(nextX, nextY);
     }
 
     function stopManualDrag(event) {
+        const wasDragging = manualDrag.active && manualDrag.moved;
         if (manualDrag.pointerId !== null && event.pointerId !== manualDrag.pointerId) {
             return;
         }
@@ -468,11 +548,16 @@ function initPetWindow() {
         pauseAutoMove(1600);
         manualDrag.active = false;
         manualDrag.ready = false;
+        manualDrag.moved = false;
         manualDrag.pointerId = null;
 
         if (manualDrag.frame !== 0) {
             window.cancelAnimationFrame(manualDrag.frame);
             manualDrag.frame = 0;
+        }
+
+        if (wasDragging) {
+            playPetAction(PetAction.Stretch);
         }
     }
 
@@ -488,17 +573,24 @@ function initPetWindow() {
         pauseAutoMove();
         manualDrag.active = false;
         manualDrag.ready = false;
+        manualDrag.moved = false;
         manualDrag.pointerId = null;
     });
 
     petElement.addEventListener("dblclick", () => {
-        setPetState(currentState === PetState.Idle ? PetState.Walking : PetState.Idle);
-        showSpeechBubble(petProfile.doubleClickLine);
+        playPetAction(PetAction.Cute);
+    });
+
+    petElement.addEventListener("click", (event) => {
+        if (event.detail === 1 && currentAction !== PetAction.Cute) {
+            playPetAction(PetAction.Blink);
+        }
     });
 
     setPetState(PetState.Idle);
     setPetDirection("right");
     setPetEdge("free");
+    setPetAction(DEFAULT_PET_ACTION);
     window.setTimeout(() => showSpeechBubble(petProfile.greetingLine), 1600 + petSlot * 450);
     scheduleNextSpeechBubble();
 }
@@ -738,7 +830,7 @@ async function initSettingsWindow() {
 
             const image = document.createElement("img");
             image.alt = "";
-            image.src = images[String(slot)] || "/logo.svg";
+            image.src = images[String(slot)] || actionImageForSlot(slot);
             preview.append(image);
 
             const content = document.createElement("div");
@@ -854,6 +946,54 @@ async function imageFileToPetDataUrl(file) {
         throw new Error("图片过大，请换一张更小的图");
     }
     return dataUrl;
+}
+
+async function transparentActionImageUrl(src) {
+    if (/\.(?:gif|webp)(?:$|[?#])/i.test(src)) {
+        return src;
+    }
+    if (transparentActionImageUrls.has(src)) {
+        return transparentActionImageUrls.get(src);
+    }
+    if (transparentActionImagePromises.has(src)) {
+        return transparentActionImagePromises.get(src);
+    }
+
+    const promise = removeLightImageBackground(src)
+        .then((url) => {
+            transparentActionImageUrls.set(src, url);
+            transparentActionImagePromises.delete(src);
+            return url;
+        })
+        .catch((error) => {
+            transparentActionImagePromises.delete(src);
+            console.error(error);
+            return src;
+        });
+    transparentActionImagePromises.set(src, promise);
+    return promise;
+}
+
+async function removeLightImageBackground(src) {
+    const image = await loadImage(src);
+    const canvas = document.createElement("canvas");
+    canvas.width = image.naturalWidth;
+    canvas.height = image.naturalHeight;
+    const context = canvas.getContext("2d");
+    context.drawImage(image, 0, 0);
+
+    const pixels = context.getImageData(0, 0, canvas.width, canvas.height);
+    for (let index = 0; index < pixels.data.length; index += 4) {
+        const red = pixels.data[index];
+        const green = pixels.data[index + 1];
+        const blue = pixels.data[index + 2];
+        if (red >= BACKGROUND_ALPHA_THRESHOLD && green >= BACKGROUND_ALPHA_THRESHOLD && blue >= BACKGROUND_ALPHA_THRESHOLD) {
+            pixels.data[index + 3] = 0;
+        }
+    }
+
+    context.putImageData(pixels, 0, 0);
+    return canvas.toDataURL("image/webp", 0.92);
 }
 
 function readFileAsDataUrl(file) {

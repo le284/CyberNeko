@@ -140,7 +140,7 @@ body[data-view="settings"] #pet-stage {
     top: var(--pet-perch-edge-y);
     left: 0;
     right: 0;
-    z-index: 3;
+    z-index: 6;
     height: 62px;
     opacity: 0;
     pointer-events: none;
@@ -166,17 +166,18 @@ body[data-view="settings"] #pet-stage {
     transform-origin: 50% 86%;
 }
 
-.neko-hit-area[data-direction="left"] .neko-sprite {
+.neko-hit-area[data-direction="right"] .neko-sprite {
     scale: -1 1;
 }
 
+.pet-action-image,
 .pet-custom-image {
     position: absolute;
     left: 50%;
     bottom: 16px;
     z-index: 4;
-    display: none;
-    max-width: 148px;
+    width: 210px;
+    max-width: 210px;
     max-height: 164px;
     object-fit: contain;
     transform: translateX(-50%);
@@ -184,8 +185,50 @@ body[data-view="settings"] #pet-stage {
     pointer-events: none;
 }
 
+.pet-custom-image {
+    display: none;
+}
+
 .neko-hit-area[data-custom-image="true"] .pet-custom-image {
     display: block;
+}
+
+.neko-hit-area[data-custom-image="true"] .pet-action-image {
+    display: none;
+}
+
+.neko-hit-area[data-action-image="false"] .pet-action-image {
+    display: none;
+}
+
+.neko-hit-area[data-action="wave"] .pet-action-image {
+    transform-origin: 48% 88%;
+}
+
+.neko-hit-area[data-action="headTilt"] .pet-action-image {
+    transform-origin: 50% 82%;
+}
+
+.neko-hit-area[data-action="stretch"] .pet-action-image {
+    transform-origin: 50% 90%;
+}
+
+.neko-hit-area[data-action="blink"] .pet-action-image {
+    transform-origin: 50% 86%;
+}
+
+.neko-hit-area[data-action="walking"] .pet-action-image,
+.neko-hit-area[data-action="cute"] .pet-action-image {
+    width: 320px;
+    max-width: 320px;
+}
+
+.neko-hit-area[data-action-image="true"] .pet-action-image ~ .neko-ear,
+.neko-hit-area[data-action-image="true"] .pet-action-image ~ .neko-head,
+.neko-hit-area[data-action-image="true"] .pet-action-image ~ .neko-body,
+.neko-hit-area[data-action-image="true"] .pet-action-image ~ .neko-tail,
+.neko-hit-area[data-action-image="true"] .pet-action-image ~ .neko-paw {
+    display: none;
 }
 
 .neko-hit-area[data-custom-image="true"] .neko-ear,
@@ -312,7 +355,7 @@ body[data-view="settings"] #pet-stage {
 .neko-paw {
     position: absolute;
     top: 124px;
-    z-index: 4;
+    z-index: 7;
     display: none;
     width: 31px;
     height: 78px;
@@ -362,30 +405,30 @@ body[data-view="settings"] #pet-stage {
     filter: blur(2px);
 }
 
-.neko-hit-area:is([data-edge="top"], [data-edge="bottom"], [data-edge="dock"]) {
+.neko-hit-area:is([data-edge="top"], [data-edge="bottom"]) {
     height: 230px;
 }
 
-.neko-hit-area:is([data-edge="top"], [data-edge="bottom"], [data-edge="dock"]) .neko-sprite {
+.neko-hit-area:is([data-edge="top"], [data-edge="bottom"]) .neko-sprite {
     top: -34px;
     width: 158px;
     height: 188px;
     transform-origin: 50% 72%;
 }
 
-.neko-hit-area:is([data-edge="top"], [data-edge="bottom"], [data-edge="dock"]) .neko-ear {
+.neko-hit-area:is([data-edge="top"], [data-edge="bottom"]) .neko-ear {
     top: 4px;
 }
 
-.neko-hit-area:is([data-edge="top"], [data-edge="bottom"], [data-edge="dock"]) .neko-ear-left {
+.neko-hit-area:is([data-edge="top"], [data-edge="bottom"]) .neko-ear-left {
     left: 25px;
 }
 
-.neko-hit-area:is([data-edge="top"], [data-edge="bottom"], [data-edge="dock"]) .neko-ear-right {
+.neko-hit-area:is([data-edge="top"], [data-edge="bottom"]) .neko-ear-right {
     right: 25px;
 }
 
-.neko-hit-area:is([data-edge="top"], [data-edge="bottom"], [data-edge="dock"]) .neko-head {
+.neko-hit-area:is([data-edge="top"], [data-edge="bottom"]) .neko-head {
     top: 28px;
     left: 19px;
     width: 112px;
@@ -393,7 +436,7 @@ body[data-view="settings"] #pet-stage {
     border-radius: 52% 52% 45% 45%;
 }
 
-.neko-hit-area:is([data-edge="top"], [data-edge="bottom"], [data-edge="dock"]) .neko-eye {
+.neko-hit-area:is([data-edge="top"], [data-edge="bottom"]) .neko-eye {
     top: 50px;
     width: 19px;
     height: 4px;
@@ -403,47 +446,48 @@ body[data-view="settings"] #pet-stage {
     box-shadow: none;
 }
 
-.neko-hit-area:is([data-edge="top"], [data-edge="bottom"], [data-edge="dock"]) .neko-eye-left {
+.neko-hit-area:is([data-edge="top"], [data-edge="bottom"]) .neko-eye-left {
     left: 27px;
 }
 
-.neko-hit-area:is([data-edge="top"], [data-edge="bottom"], [data-edge="dock"]) .neko-eye-right {
+.neko-hit-area:is([data-edge="top"], [data-edge="bottom"]) .neko-eye-right {
     right: 27px;
 }
 
-.neko-hit-area:is([data-edge="top"], [data-edge="bottom"], [data-edge="dock"]) .neko-muzzle {
+.neko-hit-area:is([data-edge="top"], [data-edge="bottom"]) .neko-muzzle {
     top: 66px;
 }
 
-.neko-hit-area:is([data-edge="top"], [data-edge="bottom"], [data-edge="dock"]) .neko-body,
-.neko-hit-area:is([data-edge="top"], [data-edge="bottom"], [data-edge="dock"]) .neko-tail,
-.neko-hit-area:is([data-edge="top"], [data-edge="bottom"], [data-edge="dock"]) .neko-shadow {
+.neko-hit-area:is([data-edge="top"], [data-edge="bottom"]) .neko-body,
+.neko-hit-area:is([data-edge="top"], [data-edge="bottom"]) .neko-tail,
+.neko-hit-area:is([data-edge="top"], [data-edge="bottom"]) .neko-shadow {
     display: none;
 }
 
-.neko-hit-area:is([data-edge="top"], [data-edge="bottom"], [data-edge="dock"]) .neko-paw {
+.neko-hit-area:is([data-edge="top"], [data-edge="bottom"]) .neko-paw {
     display: block;
 }
 
-.neko-hit-area:is([data-edge="top"], [data-edge="bottom"], [data-edge="dock"]) .pet-custom-image {
+.neko-hit-area:is([data-edge="top"], [data-edge="bottom"]) .pet-action-image,
+.neko-hit-area:is([data-edge="top"], [data-edge="bottom"]) .pet-custom-image {
     bottom: 54px;
     max-height: 138px;
     clip-path: inset(0 0 28px 0 round 8px);
 }
 
-.neko-hit-area:is([data-edge="top"], [data-edge="bottom"], [data-edge="dock"])[data-state="idle"] .neko-sprite {
+.neko-hit-area:is([data-edge="top"], [data-edge="bottom"])[data-state="idle"] .neko-sprite {
     animation: perch-idle-bob 1200ms ease-in-out infinite;
 }
 
-.neko-hit-area:is([data-edge="top"], [data-edge="bottom"], [data-edge="dock"])[data-state="walking"] .neko-sprite {
+.neko-hit-area:is([data-edge="top"], [data-edge="bottom"])[data-state="walking"] .neko-sprite {
     animation: perch-walk-bob 420ms ease-in-out infinite;
 }
 
-.neko-hit-area:is([data-edge="top"], [data-edge="bottom"], [data-edge="dock"])[data-state="walking"] .neko-paw-left {
+.neko-hit-area:is([data-edge="top"], [data-edge="bottom"])[data-state="walking"] .neko-paw-left {
     animation: paw-dangle-left 420ms ease-in-out infinite;
 }
 
-.neko-hit-area:is([data-edge="top"], [data-edge="bottom"], [data-edge="dock"])[data-state="walking"] .neko-paw-right {
+.neko-hit-area:is([data-edge="top"], [data-edge="bottom"])[data-state="walking"] .neko-paw-right {
     animation: paw-dangle-right 420ms ease-in-out infinite;
 }
 
@@ -452,11 +496,11 @@ body[data-view="settings"] #pet-stage {
 }
 
 .neko-hit-area[data-state="walking"] .neko-sprite {
-    animation: walk-bob 300ms steps(2, end) infinite;
+    animation: none;
 }
 
 .neko-hit-area[data-state="walking"] .neko-tail {
-    animation: tail-swish 300ms steps(2, end) infinite;
+    animation: none;
 }
 
 @keyframes perch-idle-bob {
@@ -533,6 +577,50 @@ body[data-view="settings"] #pet-stage {
 
     50% {
         transform: rotate(10deg);
+    }
+}
+
+@keyframes action-wave {
+    0%,
+    100% {
+        transform: translateX(-50%) rotate(-2deg);
+    }
+
+    50% {
+        transform: translateX(-50%) rotate(3deg) translateY(-2px);
+    }
+}
+
+@keyframes action-head-tilt {
+    0%,
+    100% {
+        transform: translateX(-50%) rotate(0deg);
+    }
+
+    50% {
+        transform: translateX(-50%) rotate(-4deg);
+    }
+}
+
+@keyframes action-stretch {
+    0%,
+    100% {
+        transform: translateX(-50%) scale(1);
+    }
+
+    50% {
+        transform: translateX(-50%) scale(1.04, 0.98) translateY(2px);
+    }
+}
+
+@keyframes action-blink {
+    0%,
+    100% {
+        transform: translateX(-50%) scaleY(1);
+    }
+
+    50% {
+        transform: translateX(-50%) scaleY(0.96);
     }
 }
 
